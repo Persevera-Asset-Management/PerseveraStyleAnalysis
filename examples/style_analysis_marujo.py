@@ -7,8 +7,14 @@ import numpy as np
 import pandas as pd
 
 # Get fund data
-fund_cnpj = 'Persevera Nemesis Total Return FIM'
-peers = get_persevera_peers('Nemesis').set_index('fund_cnpj')['short_name'].to_dict()
+peers = {
+    '37.829.187/0001-40': 'Legacy Capital Prev PS FIC FIM',
+    '41.409.879/0001-07': 'SPX Lancer Plus Prev FIM',
+    '41.610.610/0001-94': 'Genoa Capital Cruise Prev FIC FIM',
+    '42.479.991/0001-87': 'Vista Macro X FIM',
+    '43.860.312/0001-88': 'Kapitalo Kappa 2 Prev XP Seg FIC FIM',
+    '44.603.005/0001-84': 'Ibiuna ST Prev FIM'
+}
 fund_cnpjs = peers.keys()
 fund_data = get_funds_data(cnpjs=fund_cnpjs, fields=['fund_nav'])
 fund_data.rename(columns=peers, inplace=True)
@@ -16,25 +22,18 @@ fund_data.rename(columns=peers, inplace=True)
 # Get factor data
 factor_cols = [
     'br_cdi_index',
-    # 'anbima_ima_b',
-    # 'anbima_ima_b5',
-    # 'anbima_ima_b5+',
+    'anbima_ima_b',
+    'anbima_ima_b5',
+    'anbima_ima_b5+',
     'br_ibovespa',
-    'us_sp500',
     'brl_usd',
+    'us_sp500',
+    # 'gold',
+    # 'crude_oil_wti',
     'br_pre_2y',
-    # 'br_pre_5y',
-    'us_generic_10y',
-    'gold',
-    'crude_oil_wti',
+    'us_generic_10y'
 ]
 
-# factor_cols = [
-#     'br_cdi_index',
-#     'anbima_ida_di',
-#     'anbima_ida_ipca_infra',
-#     'anbima_ida_ipca_ex_infra'
-# ]
 factor_data = get_series(code=factor_cols)
 
 # Prepare returns data
@@ -46,19 +45,6 @@ print(f"Cleaned returns data: {returns.shape[0]} rows after removing NaN values"
 
 # Initialize analyzer
 analyzer = SharpeStyleAnalysis(returns_data=returns, fund_cols=peers.values(), factor_cols=factor_cols[1:])
-
-# print("Running analysis for the entire period...")
-# # Run analysis for the entire period
-# try:
-#     full_results = analyzer.run_analysis(
-#         min_window=10,
-#         max_window=50,
-#         vif_threshold=10.0,
-#         most_recent_only=False  # Analyze the entire period
-#     )
-# except Exception as e:
-#     print(f"Error in full period analysis: {e}")
-#     full_results = {}
 
 print("\nRunning analysis for the most recent date only...")
 # Run analysis for the most recent date only
@@ -73,85 +59,7 @@ except Exception as e:
     print(f"Error in recent date analysis: {e}")
     recent_results = {}
 
-# Extract betas and significance data
-# if fund_cnpj in full_results and len(full_results) > 0:
-#     full_betas = extract_betas(full_results, fund_cnpj)
-#     if fund_cnpj in recent_results and len(recent_results) > 0:
-#         recent_betas = extract_betas(recent_results, fund_cnpj)
-        
-#         print("\nFull period analysis results:")
-#         print(f"Number of dates analyzed: {len(full_betas)}")
-#         print("Latest factor exposures:")
-#         print(full_betas.iloc[-1])
-        
-#         print("\nMost recent date analysis results:")
-#         print(f"Number of dates analyzed: {len(recent_betas)}")
-#         print("Factor exposures:")
-#         print(recent_betas.iloc[0])
-        
-#         if fund_cnpj in recent_results:
-#             print(recent_results[fund_cnpj].T)
-# else:
-#     print("Warning: No results available for analysis visualization")
-#     full_betas = pd.DataFrame()
-#     recent_betas = pd.DataFrame()
-
-# # Save results to database (uncomment to use)
-# # analyzer.save_results(recent_results, table_name='fundos_style_analysis')
-
-# # Only create visualizations if we have results
-# if len(full_betas) > 0 and '2024' in full_betas.index:
-#     # Visualize the factor exposures
-#     plt.figure(figsize=(12, 6))
-#     for col in full_betas.loc['2024':].columns:
-#         if col not in ['rsquared', 'rsquared_adj', 'window']:
-#             plt.plot(full_betas.loc['2024':].index, full_betas.loc['2024':][col], label=col)
-#     plt.axhline(y=0, color='black', linestyle='-', alpha=0.3)
-#     plt.title(f'Factor Exposures for Fund {fund_cnpj}')
-#     plt.legend()
-#     plt.savefig('factor_exposures.png')
-#     print("Created factor exposure time series chart: factor_exposures.png")
-
-# if fund_cnpj in recent_results and len(recent_results) > 0:
-#     # Create bar chart comparing betas and p-values
-#     plt.figure(figsize=(12, 8))
-    
-#     try:
-#         # Get betas and p-values
-#         betas = recent_results[fund_cnpj].loc['beta'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
-#         pvalues = recent_results[fund_cnpj].loc['pvalue'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
-        
-#         # Get R-squared and adjusted R-squared
-#         rsquared = recent_results[fund_cnpj].loc['model', 'rsquared']
-#         rsquared_adj = recent_results[fund_cnpj].loc['model', 'rsquared_adj']
-        
-#         # Sort betas and pvalues
-#         betas = betas.sort_values()
-#         pvalues = pvalues[betas.index]
-        
-#         # Create colors based on p-values
-#         colors = ['skyblue' if p >= 0.10 else 'darkblue' for p in pvalues]
-        
-#         # Plot horizontal bars
-#         y = np.arange(len(betas))
-#         plt.barh(y, betas, color=colors)
-        
-#         # Customize plot
-#         plt.axvline(x=0, color='black', linestyle='-', alpha=0.3)
-#         plt.yticks(y, betas.index)
-#         plt.title(f'Factor Exposures for Fund {fund_cnpj}\nMost Recent Date\n(Dark blue = significant at 10% level)')
-        
-#         # Add R-squared and adjusted R-squared as text annotation
-#         plt.figtext(0.15, 0.02, f'R-squared: {rsquared:.4f}', fontsize=12)
-#         plt.figtext(0.55, 0.02, f'Adjusted R-squared: {rsquared_adj:.4f}', fontsize=12)
-        
-#         plt.tight_layout(rect=[0, 0.05, 1, 1])  # Adjust layout to make room for text at bottom
-#         plt.savefig('factor_exposures_pvalues.png')
-#         print("Created individual fund factor exposure chart: factor_exposures_pvalues.png")
-#     except Exception as e:
-#         print(f"Error creating individual fund chart: {e}")
-
-# New code: Compare betas across all funds, organized by factor
+# Compare betas across all funds, organized by factor
 print("\nCreating cross-fund beta comparison by factor...")
 
 # Extract factor list (excluding non-factor columns)

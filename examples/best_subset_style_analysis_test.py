@@ -1,13 +1,13 @@
-from persevera_style_analysis.core.sharpe_style_analysis import SharpeStyleAnalysis
+from persevera_style_analysis.core.best_subset_style_analysis import BestSubsetStyleAnalysis
 from persevera_style_analysis.utils.helpers import extract_betas, compute_significance_mask
 from persevera_style_analysis.utils import helpers
 from persevera_tools.data import get_series, get_funds_data, get_persevera_peers
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 # Get fund data
-fund_cnpj = 'Persevera Nemesis Total Return FIM'
 peers = get_persevera_peers('Nemesis').set_index('fund_cnpj')['short_name'].to_dict()
 fund_cnpjs = peers.keys()
 fund_data = get_funds_data(cnpjs=fund_cnpjs, fields=['fund_nav'])
@@ -16,25 +16,20 @@ fund_data.rename(columns=peers, inplace=True)
 # Get factor data
 factor_cols = [
     'br_cdi_index',
+    'br_ibovespa',
+    'us_sp500',
+    # 'br_bmf_di_jan27_futures',
+    # 'br_bmf_di_jan28_futures',
+    'br_bmf_di_jan29_futures',
     # 'anbima_ima_b',
     # 'anbima_ima_b5',
     # 'anbima_ima_b5+',
-    'br_ibovespa',
-    'us_sp500',
-    'brl_usd',
-    'br_pre_2y',
-    # 'br_pre_5y',
     'us_generic_10y',
+    'brl_usd',
     'gold',
     'crude_oil_wti',
 ]
 
-# factor_cols = [
-#     'br_cdi_index',
-#     'anbima_ida_di',
-#     'anbima_ida_ipca_infra',
-#     'anbima_ida_ipca_ex_infra'
-# ]
 factor_data = get_series(code=factor_cols)
 
 # Prepare returns data
@@ -45,119 +40,21 @@ returns = returns.dropna(how='any')
 print(f"Cleaned returns data: {returns.shape[0]} rows after removing NaN values")
 
 # Initialize analyzer
-analyzer = SharpeStyleAnalysis(returns_data=returns, fund_cols=peers.values(), factor_cols=factor_cols[1:])
+best_subset_analysis = BestSubsetStyleAnalysis(returns_data=returns, fund_cols=peers.values(), factor_cols=factor_cols[1:])
 
-# print("Running analysis for the entire period...")
-# # Run analysis for the entire period
-# try:
-#     full_results = analyzer.run_analysis(
-#         min_window=10,
-#         max_window=50,
-#         vif_threshold=10.0,
-#         most_recent_only=False  # Analyze the entire period
-#     )
-# except Exception as e:
-#     print(f"Error in full period analysis: {e}")
-#     full_results = {}
+# Parameters
+min_window = 10
+max_window = 50
+threshold_out = 0.10
 
-print("\nRunning analysis for the most recent date only...")
-# Run analysis for the most recent date only
-try:
-    recent_results = analyzer.run_analysis(
-        min_window=10,
-        max_window=50,
-        vif_threshold=10.0,
-        most_recent_only=True  # Analyze only the most recent date
-    )
-except Exception as e:
-    print(f"Error in recent date analysis: {e}")
-    recent_results = {}
+print("\nRunning best subset style analysis for the most recent date...")
+best_subset_results = best_subset_analysis.run_analysis(
+    min_window=min_window,
+    max_window=max_window,
+    selection_metric='adjr2',  # aic, bic, adjr2
+    most_recent_only=True
+)
 
-# Extract betas and significance data
-# if fund_cnpj in full_results and len(full_results) > 0:
-#     full_betas = extract_betas(full_results, fund_cnpj)
-#     if fund_cnpj in recent_results and len(recent_results) > 0:
-#         recent_betas = extract_betas(recent_results, fund_cnpj)
-        
-#         print("\nFull period analysis results:")
-#         print(f"Number of dates analyzed: {len(full_betas)}")
-#         print("Latest factor exposures:")
-#         print(full_betas.iloc[-1])
-        
-#         print("\nMost recent date analysis results:")
-#         print(f"Number of dates analyzed: {len(recent_betas)}")
-#         print("Factor exposures:")
-#         print(recent_betas.iloc[0])
-        
-#         if fund_cnpj in recent_results:
-#             print(recent_results[fund_cnpj].T)
-# else:
-#     print("Warning: No results available for analysis visualization")
-#     full_betas = pd.DataFrame()
-#     recent_betas = pd.DataFrame()
-
-# # Save results to database (uncomment to use)
-# # analyzer.save_results(recent_results, table_name='fundos_style_analysis')
-
-# # Only create visualizations if we have results
-# if len(full_betas) > 0 and '2024' in full_betas.index:
-#     # Visualize the factor exposures
-#     plt.figure(figsize=(12, 6))
-#     for col in full_betas.loc['2024':].columns:
-#         if col not in ['rsquared', 'rsquared_adj', 'window']:
-#             plt.plot(full_betas.loc['2024':].index, full_betas.loc['2024':][col], label=col)
-#     plt.axhline(y=0, color='black', linestyle='-', alpha=0.3)
-#     plt.title(f'Factor Exposures for Fund {fund_cnpj}')
-#     plt.legend()
-#     plt.savefig('factor_exposures.png')
-#     print("Created factor exposure time series chart: factor_exposures.png")
-
-# if fund_cnpj in recent_results and len(recent_results) > 0:
-#     # Create bar chart comparing betas and p-values
-#     plt.figure(figsize=(12, 8))
-    
-#     try:
-#         # Get betas and p-values
-#         betas = recent_results[fund_cnpj].loc['beta'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
-#         pvalues = recent_results[fund_cnpj].loc['pvalue'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
-        
-#         # Get R-squared and adjusted R-squared
-#         rsquared = recent_results[fund_cnpj].loc['model', 'rsquared']
-#         rsquared_adj = recent_results[fund_cnpj].loc['model', 'rsquared_adj']
-        
-#         # Sort betas and pvalues
-#         betas = betas.sort_values()
-#         pvalues = pvalues[betas.index]
-        
-#         # Create colors based on p-values
-#         colors = ['skyblue' if p >= 0.10 else 'darkblue' for p in pvalues]
-        
-#         # Plot horizontal bars
-#         y = np.arange(len(betas))
-#         plt.barh(y, betas, color=colors)
-        
-#         # Customize plot
-#         plt.axvline(x=0, color='black', linestyle='-', alpha=0.3)
-#         plt.yticks(y, betas.index)
-#         plt.title(f'Factor Exposures for Fund {fund_cnpj}\nMost Recent Date\n(Dark blue = significant at 10% level)')
-        
-#         # Add R-squared and adjusted R-squared as text annotation
-#         plt.figtext(0.15, 0.02, f'R-squared: {rsquared:.4f}', fontsize=12)
-#         plt.figtext(0.55, 0.02, f'Adjusted R-squared: {rsquared_adj:.4f}', fontsize=12)
-        
-#         plt.tight_layout(rect=[0, 0.05, 1, 1])  # Adjust layout to make room for text at bottom
-#         plt.savefig('factor_exposures_pvalues.png')
-#         print("Created individual fund factor exposure chart: factor_exposures_pvalues.png")
-#     except Exception as e:
-#         print(f"Error creating individual fund chart: {e}")
-
-# New code: Compare betas across all funds, organized by factor
-print("\nCreating cross-fund beta comparison by factor...")
-
-# Extract factor list (excluding non-factor columns)
-factors = factor_cols[1:]  # Skip the first factor (br_cdi_index) as it's usually a benchmark or intercept
-
-# Create a DataFrame to store betas for all funds
 all_betas = pd.DataFrame()
 all_pvalues = pd.DataFrame()
 all_rsquared = pd.Series()
@@ -166,33 +63,46 @@ all_windows = pd.Series()  # For storing window sizes
 
 # Extract betas and p-values for each fund
 for fund_id, fund_name in peers.items():
-    if fund_name in recent_results:
+    if fund_name in best_subset_results:
         try:
             # Get beta values and drop non-factor columns
-            beta_values = recent_results[fund_name].loc['beta'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
-            pvalue_values = recent_results[fund_name].loc['pvalue'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
+            beta_values = best_subset_results[fund_name].loc['beta'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
+            pvalue_values = best_subset_results[fund_name].loc['pvalue'].drop(['date', 'fund', 'rsquared', 'rsquared_adj', 'window'], errors='ignore')
             
             # Add to DataFrames with short name as column label
             all_betas[fund_name] = beta_values
             all_pvalues[fund_name] = pvalue_values
             
             # Get R-squared values
-            all_rsquared[fund_name] = recent_results[fund_name].loc['model', 'rsquared']
-            all_rsquared_adj[fund_name] = recent_results[fund_name].loc['model', 'rsquared_adj']
+            all_rsquared[fund_name] = best_subset_results[fund_name].loc['model', 'rsquared']
+            all_rsquared_adj[fund_name] = best_subset_results[fund_name].loc['model', 'rsquared_adj']
             
             # Get window size
-            all_windows[fund_name] = recent_results[fund_name].loc['model', 'window']
+            all_windows[fund_name] = best_subset_results[fund_name].loc['model', 'window']
         except Exception as e:
             print(f"Could not extract data for fund {fund_name}: {e}")
 
+# Print the collected data
+print("\n--- Collected Data for Most Recent Date ---")
+print("\nBetas:")
+print(all_betas)
+print("\nP-values:")
+print(all_pvalues)
+print("\nR-squared:")
+print(all_rsquared)
+print("\nAdjusted R-squared:")
+print(all_rsquared_adj)
+print("\nOptimal Window Sizes:")
+print(all_windows)
+
 # Create a chart for each factor if we have data
-if not all_betas.empty and len(factors) > 0:
+if not all_betas.empty and len(factor_cols[1:]) > 0:
     plt.figure(figsize=(15, 20))
-    n_factors = len(factors)
+    n_factors = len(factor_cols[1:])
     rows = (n_factors + 1) // 2  # Calculate number of rows (2 charts per row)
     cols = min(2, n_factors)     # Maximum 2 columns
     
-    for i, factor in enumerate(factors):
+    for i, factor in enumerate(factor_cols[1:]):
         # Create subplot
         ax = plt.subplot(rows, cols, i+1)
         
@@ -318,3 +228,4 @@ if not all_windows.empty:
         print("Created window size comparison chart: window_size_comparison.png")
     except Exception as e:
         print(f"Error creating window size chart: {e}")
+

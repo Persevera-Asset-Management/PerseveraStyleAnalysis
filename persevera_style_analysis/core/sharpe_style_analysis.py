@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
@@ -5,6 +6,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from typing import List, Dict, Union, Optional, Tuple
 from persevera_tools.db import to_sql
 
+logger = logging.getLogger(__name__)
 
 class SharpeStyleAnalysis:
     """
@@ -77,6 +79,7 @@ class SharpeStyleAnalysis:
         df_window_opt = pd.DataFrame()
         
         for window in range(min_window, max_window + 1):
+            # print(f"Analyzing window size: {window}")
             # Check if we have enough data
             if date_idx - window < 0:
                 continue
@@ -141,7 +144,7 @@ class SharpeStyleAnalysis:
         results = {}
         
         for fund in funds:
-            print(f"Analyzing {fund}...")
+            logger.info(f"Analyzing {fund}...")
             
             output = pd.DataFrame()
             
