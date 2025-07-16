@@ -21,7 +21,15 @@ def prepare_data(fund_data: pd.DataFrame, factor_data: pd.DataFrame) -> pd.DataF
     merged_data = merged_data.ffill()
     
     # Calculate returns
-    yield_cols = ['br_pre_2y', 'br_pre_3y', 'br_pre_5y', 'br_pre_10y', 'us_generic_10y']
+    yield_cols = [
+        # Brazil
+        'br_pre_2y', 'br_pre_3y', 'br_pre_5y', 'br_pre_10y',
+        'br_bmf_di_jan27_futures', 'br_bmf_di_jan28_futures', 'br_bmf_di_jan29_futures', 'br_bmf_di_jan30_futures', 'br_bmf_di_jan31_futures', 'br_bmf_di_jan32_futures', 'br_bmf_di_jan33_futures',
+
+        # US
+        'us_generic_10y', 'br_bmf_us_treasury_10y_futures'
+    ]
+
     returns = merged_data.apply(
         lambda col: col.pct_change() if col.name not in yield_cols else col.diff()
     ).dropna(how='all')
