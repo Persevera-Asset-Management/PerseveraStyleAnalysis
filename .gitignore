@@ -61,3 +61,6 @@ ENV/
 # Logs
 logs/
 *.log 
+
+# Ignore example files as they may contain sensitive data
+/examples/
