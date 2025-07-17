@@ -6,6 +6,7 @@ import itertools
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from typing import List, Dict, Union, Optional, Tuple
 from persevera_tools.db import to_sql
+from persevera_style_analysis.utils import helpers
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,7 @@ class BestSubsetStyleAnalysis:
         # If fund_cols and factor_cols are not provided, try to infer them
         if fund_cols is None and factor_cols is None:
             # Default factors if not provided
-            default_factors = ['br_cdi_index', 'br_ibovespa', 'brl_usd', 'us_sp500', 
-                               'crb_index', 'br_pre_2y', 'us_generic_10y']
+            default_factors = helpers.COLS_FACTOR_DEFAULT
             self.factor_cols = [col for col in self.returns.columns if col in default_factors]
             self.fund_cols = [col for col in self.returns.columns if col not in self.factor_cols]
         else:

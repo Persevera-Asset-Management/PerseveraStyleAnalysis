@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "persevera_style_analysis"
+dynamic = ["version"]
 description = "Style Analysis tools for Persevera Asset Management"
 authors = [{ name = "Persevera Asset Management" }]
 dependencies = [
@@ -13,7 +14,6 @@ dependencies = [
     "matplotlib",
     "seaborn"
 ]
-dynamic = ["version"]
 
 [tool.setuptools.dynamic]
 version = {attr = "persevera_style_analysis.__version__"}

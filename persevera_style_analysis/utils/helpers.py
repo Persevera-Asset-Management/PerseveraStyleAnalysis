@@ -3,6 +3,34 @@ import numpy as np
 from typing import List, Dict, Union, Optional, Tuple
 import datetime
 
+COLS_YIELD = [
+    # Brazil
+    'br_pre_2y',
+    'br_pre_3y',
+    'br_pre_5y',
+    'br_pre_10y',
+    'br_bmf_di_jan27_futures',
+    'br_bmf_di_jan28_futures',
+    'br_bmf_di_jan29_futures',
+    'br_bmf_di_jan30_futures',
+    'br_bmf_di_jan31_futures',
+    'br_bmf_di_jan32_futures',
+    'br_bmf_di_jan33_futures',
+
+    # US
+    'us_generic_10y',
+    'br_bmf_us_treasury_10y_futures'
+]
+
+COLS_FACTOR_DEFAULT = [
+    'br_cdi_index',
+    'br_ibovespa',
+    'brl_usd',
+    'us_sp500',
+    'crb_index',
+    'us_generic_10y'
+]
+
 def prepare_data(fund_data: pd.DataFrame, factor_data: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare data for style analysis by merging fund data with factors and calculating returns.
@@ -21,17 +49,10 @@ def prepare_data(fund_data: pd.DataFrame, factor_data: pd.DataFrame) -> pd.DataF
     merged_data = merged_data.ffill()
     
     # Calculate returns
-    yield_cols = [
-        # Brazil
-        'br_pre_2y', 'br_pre_3y', 'br_pre_5y', 'br_pre_10y',
-        'br_bmf_di_jan27_futures', 'br_bmf_di_jan28_futures', 'br_bmf_di_jan29_futures', 'br_bmf_di_jan30_futures', 'br_bmf_di_jan31_futures', 'br_bmf_di_jan32_futures', 'br_bmf_di_jan33_futures',
 
-        # US
-        'us_generic_10y', 'br_bmf_us_treasury_10y_futures'
-    ]
 
     returns = merged_data.apply(
-        lambda col: col.pct_change() if col.name not in yield_cols else col.diff()
+        lambda col: col.pct_change() if col.name not in COLS_YIELD else col.diff()
     ).dropna(how='all')
     
     return returns 
