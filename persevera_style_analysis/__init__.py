@@ -2,4 +2,4 @@ from persevera_style_analysis.core.sharpe_style_analysis import SharpeStyleAnaly
 from persevera_style_analysis.core.stepwise_style_analysis import StepwiseStyleAnalysis
 from persevera_style_analysis.core.best_subset_style_analysis import BestSubsetStyleAnalysis
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"

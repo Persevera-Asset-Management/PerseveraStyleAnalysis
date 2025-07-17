@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "persevera_style_analysis"
+description = "Style Analysis tools for Persevera Asset Management"
+authors = [{ name = "Persevera Asset Management" }]
+dependencies = [
+    "pandas",
+    "numpy",
+    "statsmodels",
+    "matplotlib",
+    "seaborn"
+]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "persevera_style_analysis.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["persevera_style_analysis*"]
