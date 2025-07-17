@@ -1,7 +1,3 @@
-"""
-Core style analysis functionality.
-"""
-
 from persevera_style_analysis.core.sharpe_style_analysis import SharpeStyleAnalysis
 from persevera_style_analysis.core.stepwise_style_analysis import StepwiseStyleAnalysis
 from persevera_style_analysis.core.best_subset_style_analysis import BestSubsetStyleAnalysis
